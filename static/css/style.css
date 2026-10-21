@@ -820,43 +820,14 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 400;
 }
 
-/* Kerala Online-First Platform — Top Hero Banner */
-.hero-kerala-banner {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 60%, #FEF9C3 100%);
-  border: 1.5px solid rgba(245, 158, 11, 0.5);
-  border-radius: 50px;
-  padding: 9px 20px 9px 14px;
-  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.25), 0 1px 3px rgba(0,0,0,0.06);
-  max-width: fit-content;
-}
-.hero-kerala-icon {
-  font-size: 1.15rem;
-  color: #D97706;
-  flex-shrink: 0;
-}
-.hero-kerala-platform {
+/* Kerala Online-First Platform — plain bold subtitle below HOMline 24/7 badge */
+.hero-kerala-subtitle {
   font-size: 0.97rem;
   font-weight: 700;
-  color: #78350F;
-  letter-spacing: 0.01em;
-}
-.hero-kerala-sep {
-  color: #B45309;
-  font-weight: 400;
-}
-.hero-kerala-brand {
-  font-size: 1rem;
-  font-weight: 900;
   color: var(--primary-navy);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  background: linear-gradient(135deg, var(--primary-navy) 0%, var(--brand-primary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  letter-spacing: 0.01em;
+  margin-top: 2px;
+  margin-bottom: 0;
 }
 
 /* 24×7 Highlighted Trust Note */
@@ -892,12 +863,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================================================
-   Hero Brand 24/7 Animated Section
+   Hero Brand 24/7 Clock-Style Badge
    ========================================================================== */
 .hero-brand-247-wrapper {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   user-select: none;
 }
 
@@ -920,56 +891,68 @@ h1, h2, h3, h4, h5, h6 {
   100% { background-position: 0% 50%; }
 }
 
+/* Clock-face circular badge wrapping the 24/7 text */
 .hero-brand-247-badge {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
+  /* Full thin gray base circle */
+  border: 2px solid rgba(180, 180, 195, 0.55);
+  border-radius: 50%;
+  background: transparent;
 }
 
-/* Spinning dashed ring around 24/7 */
+/* Red arc overlay — conic sweep like a clock progress indicator.
+   Sits on top of the gray ring using a transparent-background conic ring trick. */
 .hero-brand-247-ring {
   position: absolute;
-  inset: 0;
+  inset: -2px;          /* sits exactly on the border edge */
   border-radius: 50%;
-  border: 2.5px dashed transparent;
-  background:
-    linear-gradient(#fff, #fff) padding-box,
-    conic-gradient(from 0deg, #F59E0B 0%, #EF4444 30%, #2563EB 60%, #06B6D4 80%, #F59E0B 100%) border-box;
-  animation: hero247RingSpin 3s linear infinite;
-  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.5));
+  /* Conic gradient: red arc from ~315deg to ~90deg (the upper-right quadrant like an image),
+     rest transparent so base gray border shows through */
+  background: conic-gradient(
+    from -45deg,
+    #EF4444 0deg 110deg,
+    transparent 110deg 360deg
+  );
+  /* Mask trick: only show a thin ring, not a filled disc */
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  animation: hero247ClockSweep 4s linear infinite;
 }
 
-@keyframes hero247RingSpin {
+@keyframes hero247ClockSweep {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
 
-/* Inner glow pulse behind the number */
+/* Subtle inner glow pulse */
 .hero-brand-247-badge::before {
   content: '';
   position: absolute;
   inset: 5px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, transparent 75%);
-  animation: hero247GlowPulse 2s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.1) 0%, transparent 75%);
+  animation: hero247GlowPulse 2.5s ease-in-out infinite;
 }
 
 @keyframes hero247GlowPulse {
-  0%, 100% { opacity: 0.6; transform: scale(0.9); }
-  50%       { opacity: 1;   transform: scale(1.1); }
+  0%, 100% { opacity: 0.5; transform: scale(0.9); }
+  50%       { opacity: 1;  transform: scale(1.1); }
 }
 
+/* Bold red/orange "24/7" text inside the clock badge */
 .hero-brand-247-text {
   position: relative;
   z-index: 1;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 900;
   letter-spacing: 0.01em;
-  background: linear-gradient(135deg, #D97706 0%, #EF4444 50%, #F59E0B 100%);
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -977,11 +960,12 @@ h1, h2, h3, h4, h5, h6 {
   text-shadow: none;
 }
 
-/* Dark mode compat */
-[data-theme="dark"] .hero-brand-247-ring {
-  background:
-    linear-gradient(#111827, #111827) padding-box,
-    conic-gradient(from 0deg, #F59E0B 0%, #EF4444 30%, #2563EB 60%, #06B6D4 80%, #F59E0B 100%) border-box;
+/* Dark mode compat — slightly brighter gray base ring */
+[data-theme="dark"] .hero-brand-247-badge {
+  border-color: rgba(140, 140, 160, 0.4);
+}
+[data-theme="dark"] .hero-brand-247-badge::before {
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, transparent 75%);
 }
 
 

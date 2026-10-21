@@ -75,14 +75,7 @@ export default function Home() {
           </span>
         </div>
 
-        <div className="hero-kerala-banner mb-4">
-          <i className="bi bi-geo-alt-fill hero-kerala-icon" aria-hidden="true"></i>
-          <span>
-            <span className="hero-kerala-platform">Kerala's Online-First Assisted Platform</span>
-            <span className="hero-kerala-sep" aria-hidden="true"> — </span>
-            <span className="hero-kerala-brand">HOMLINE</span>
-          </span>
-        </div>
+        <p className="hero-kerala-subtitle">Kerala's Online-First Assisted Platform</p>
 
         
         <h1 className="hero-headline mb-3">
