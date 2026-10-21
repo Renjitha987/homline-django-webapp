@@ -1,0 +1,216 @@
+name: cd
+
+# ---------------------------------------------------------------------------
+# Trigger conditions:
+#   1. Automatically: when the "ci" workflow completes successfully on "main".
+#   2. Manually: via the Actions UI (workflow_dispatch) for approved commits.
+#
+# The workflow_run trigger guarantees CI has passed before this runs.
+# Restrict to the "push" event on "main" to avoid deploying PR or fork runs.
+# ---------------------------------------------------------------------------
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual deployment"
+        required: false
+        default: "Manual trigger"
+
+# Prevent concurrent deployments — queue new runs, cancel pending ones.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to production (EC2)
+    runs-on: ubuntu-latest
+
+    # For automatic trigger: only deploy when CI passed on a push to main.
+    # For manual trigger: always proceed.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
+
+    # Optional: use a GitHub Actions "production" environment for audit trail
+    # and manual approval gates. Create the environment in Settings > Environments.
+    environment:
+      name: production
+      url: https://homline.in
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Determine the commit being deployed
+      # -----------------------------------------------------------------------
+      - name: Determine target commit
+        id: commit
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Deploying commit: ${{ steps.commit.outputs.sha || github.sha }}"
+
+      # -----------------------------------------------------------------------
+      # 2. Set up SSH agent with the deployment key
+      #    The host fingerprint is verified against the trusted value stored
+      #    in the EC2_HOST_FINGERPRINT secret before any connection is made.
+      # -----------------------------------------------------------------------
+      - name: Verify SSH secrets are present
+        env:
+          KEY_PRESENT: ${{ secrets.EC2_SSH_PRIVATE_KEY != '' }}
+          HOST_PRESENT: ${{ secrets.EC2_HOST != '' }}
+          FP_PRESENT: ${{ secrets.EC2_HOST_FINGERPRINT != '' }}
+        run: |
+          MISSING=0
+          [[ "$KEY_PRESENT"  == "true" ]] || { echo "ERROR: EC2_SSH_PRIVATE_KEY secret is not set." >&2; MISSING=1; }
+          [[ "$HOST_PRESENT" == "true" ]] || { echo "ERROR: EC2_HOST secret is not set." >&2; MISSING=1; }
+          [[ "$FP_PRESENT"   == "true" ]] || { echo "ERROR: EC2_HOST_FINGERPRINT secret is not set." >&2; MISSING=1; }
+          [[ "$MISSING" -eq 0 ]] || exit 1
+          echo "All required SSH secrets are present."
+
+      - name: Configure SSH with verified host key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_HOST_FINGERPRINT: ${{ secrets.EC2_HOST_FINGERPRINT }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          # Write the private key — never echo it
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          # Scan the actual server fingerprint
+          SCANNED_FP=$(ssh-keyscan -H "$EC2_HOST" 2>/dev/null \
+            | ssh-keygen -lf - 2>/dev/null \
+            | awk '{print $2}' \
+            | head -n1)
+
+          echo "Scanned fingerprint  : $SCANNED_FP"
+          echo "Expected fingerprint : $EC2_HOST_FINGERPRINT"
+
+          # Abort if fingerprint does not match the trusted value
+          if [[ "$SCANNED_FP" != "$EC2_HOST_FINGERPRINT" ]]; then
+            echo "ERROR: SSH host fingerprint mismatch. Aborting to prevent MITM." >&2
+            echo "  Expected : $EC2_HOST_FINGERPRINT" >&2
+            echo "  Got      : $SCANNED_FP" >&2
+            exit 1
+          fi
+
+          echo "Host fingerprint verified ✓"
+
+          # Add the verified host key to known_hosts
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          chmod 644 ~/.ssh/known_hosts
+
+          # Write SSH config for this connection
+          cat >> ~/.ssh/config <<EOF
+Host ec2-target
+  HostName $EC2_HOST
+  User $EC2_USER
+  IdentityFile ~/.ssh/deploy_key
+  StrictHostKeyChecking yes
+  BatchMode yes
+  ConnectTimeout 20
+EOF
+          chmod 600 ~/.ssh/config
+
+      # -----------------------------------------------------------------------
+      # 3. Test SSH connectivity (fails fast if the key isn't authorized)
+      # -----------------------------------------------------------------------
+      - name: Test SSH connectivity
+        run: |
+          echo "Testing SSH connection..."
+          ssh ec2-target "echo 'SSH connection successful as \$(whoami) on \$(hostname)'"
+
+      # -----------------------------------------------------------------------
+      # 4. Upload the deployment script to the server
+      # -----------------------------------------------------------------------
+      - name: Checkout repository (for deploy script)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.commit.outputs.sha || github.sha }}
+
+      - name: Upload deployment script
+        run: |
+          scp deploy/aws/deploy.sh ec2-target:/tmp/homline-deploy.sh
+          ssh ec2-target "chmod +x /tmp/homline-deploy.sh"
+
+      # -----------------------------------------------------------------------
+      # 5. Run the deployment script on EC2
+      # -----------------------------------------------------------------------
+      - name: Run deployment on EC2
+        run: |
+          ssh ec2-target "bash /tmp/homline-deploy.sh"
+
+      # -----------------------------------------------------------------------
+      # 6. Post-deployment verification
+      # -----------------------------------------------------------------------
+      - name: Verify site is responding (HTTPS)
+        run: |
+          echo "Checking https://homline.in/healthz/ ..."
+          for attempt in 1 2 3; do
+            HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+              --max-time 15 \
+              --retry 2 \
+              https://homline.in/healthz/ || echo "000")
+            echo "Attempt $attempt: HTTP $HTTP_CODE"
+            if [[ "$HTTP_CODE" == "200" ]]; then
+              echo "Site health check passed ✓"
+              break
+            fi
+            if [[ "$attempt" -eq 3 ]]; then
+              echo "ERROR: Site health check failed after 3 attempts (last HTTP: $HTTP_CODE)." >&2
+              exit 1
+            fi
+            sleep 10
+          done
+
+      - name: Verify www redirect
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+            --max-time 15 \
+            --location \
+            https://www.homline.in/healthz/ || echo "000")
+          echo "www redirect + health check: HTTP $HTTP_CODE"
+          if [[ "$HTTP_CODE" != "200" ]]; then
+            echo "WARNING: www subdomain health check returned HTTP $HTTP_CODE"
+          fi
+
+      # -----------------------------------------------------------------------
+      # 7. Clean up sensitive files from the runner
+      # -----------------------------------------------------------------------
+      - name: Clean up SSH keys
+        if: always()
+        run: |
+          rm -f ~/.ssh/deploy_key ~/.ssh/config
+          echo "SSH keys cleaned up."
+
+      # -----------------------------------------------------------------------
+      # 8. Deployment summary
+      # -----------------------------------------------------------------------
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "## Deployment Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Item | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Status** | ✅ Success |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Environment** | Production (https://homline.in) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Commit** | \`${{ steps.commit.outputs.sha || github.sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Triggered by** | ${{ github.event_name }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Actor** | ${{ github.actor }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Time** | $(date -u '+%Y-%m-%dT%H:%M:%SZ') |" >> "$GITHUB_STEP_SUMMARY"

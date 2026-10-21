@@ -1,0 +1,25 @@
+[Unit]
+Description=HOMLine DIGI Seva Django application
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/homline-django-webapp
+EnvironmentFile=/etc/homline/homline.env
+ExecStart=/home/ubuntu/homline-django-webapp/venv/bin/gunicorn \
+    homline_project.wsgi:application \
+    --bind 127.0.0.1:8000 \
+    --workers 3 \
+    --threads 2 \
+    --timeout 90 \
+    --access-logfile -
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=homline
+
+[Install]
+WantedBy=multi-user.target

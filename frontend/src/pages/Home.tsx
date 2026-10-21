@@ -66,9 +66,22 @@ export default function Home() {
     <div className="row align-items-center g-5">
       <div className="col-lg-7">
         
-        <div className="d-inline-flex align-items-center gap-2 bg-white border border-warning rounded-pill px-3 py-1 shadow-sm mb-3">
-          <span className="badge bg-gold text-dark font-monospace fw-bold">DIGITAL SERVICES</span>
-          <span className="small text-muted"><i className="bi bi-universal-access text-indigo me-1"></i> Accessible for all abilities — no travel required.</span>
+        {/* Animated HOMline 24/7 Brand Badge */}
+        <div className="hero-brand-247-wrapper mb-3">
+          <span className="hero-brand-247-homline">HOMline</span>
+          <span className="hero-brand-247-badge" aria-label="24 by 7 service">
+            <span className="hero-brand-247-ring" aria-hidden="true"></span>
+            <span className="hero-brand-247-text">24/7</span>
+          </span>
+        </div>
+
+        <div className="hero-kerala-banner mb-4">
+          <i className="bi bi-geo-alt-fill hero-kerala-icon" aria-hidden="true"></i>
+          <span>
+            <span className="hero-kerala-platform">Kerala's Online-First Assisted Platform</span>
+            <span className="hero-kerala-sep" aria-hidden="true"> — </span>
+            <span className="hero-kerala-brand">HOMLINE</span>
+          </span>
         </div>
 
         
@@ -80,6 +93,7 @@ export default function Home() {
         <p className="hero-subtitle mb-4">
           Designed to Easy Access and Reduce Travel. Access passport assistance, PAN cards, exam applications, ticket bookings, poster designs & DTP with friendly doorstep and online guidance.
         </p>
+
 
         <form onSubmit={search} className="services-search mb-4" role="search">
           <label className="visually-hidden" htmlFor="homeSearch">Search services</label>
@@ -106,6 +120,11 @@ export default function Home() {
           <span><i className="bi bi-shield-check text-teal"></i> Clear, guided support</span>
           <span><i className="bi bi-house-door text-teal"></i> Help from home</span>
           <span><i className="bi bi-receipt text-teal"></i> Transparent charges</span>
+          <span className="trust-note-24x7">
+            <span className="pulse-dot pulse-dot-gold" aria-hidden="true"></span>
+            <i className="bi bi-clock-fill me-1" aria-hidden="true"></i>
+            24×7 Trusted Online Services
+          </span>
         </div>
       </div>
 

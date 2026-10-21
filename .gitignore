@@ -25,3 +25,8 @@ frontend/node_modules/
 # design exploration previews
 design-explorations/
 .impeccable/
+
+# local data exports / backups (keep out of Git)
+full_services_backup.json
+*.dump
+*.backup
