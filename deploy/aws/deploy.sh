@@ -16,6 +16,10 @@
 # =============================================================================
 
 set -euo pipefail
+trap 'echo "[homline-deploy] ERROR: Script failed at line $LINENO with exit code $?"' ERR
+
+# Ensure standard system and nvm paths are in PATH
+export PATH="/home/ubuntu/.nvm/versions/node/$(ls /home/ubuntu/.nvm/versions/node/ 2>/dev/null | tail -n 1)/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -112,13 +116,17 @@ fi
 # 3. Build the frontend (React + Vite → static/app/)
 # ---------------------------------------------------------------------------
 if [[ -d "$FRONTEND_DIR" ]] && [[ -f "$FRONTEND_DIR/package-lock.json" ]]; then
-    log "Building frontend..."
-    cd "$FRONTEND_DIR"
-    # Use ci for reproducible installs
-    npm ci --prefer-offline 2>&1 | tail -5
-    npm run build 2>&1 | tail -10
-    cd "$APP_DIR"
-    log "Frontend build complete."
+    if command -v npm &> /dev/null; then
+        log "Building frontend..."
+        cd "$FRONTEND_DIR"
+        # Use ci for reproducible installs
+        npm ci --prefer-offline 2>&1 | tail -5
+        npm run build 2>&1 | tail -10
+        cd "$APP_DIR"
+        log "Frontend build complete."
+    else
+        log "WARNING: npm command not found; skipping frontend build."
+    fi
 else
     log "WARNING: frontend/ directory or package-lock.json not found — skipping frontend build."
 fi

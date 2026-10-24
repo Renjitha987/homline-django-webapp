@@ -162,7 +162,7 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Run deployment on EC2
         run: |
-          ssh ec2-target "bash /tmp/homline-deploy.sh"
+          ssh ec2-target "bash -l /tmp/homline-deploy.sh"
 
       # -----------------------------------------------------------------------
       # 6. Post-deployment verification
