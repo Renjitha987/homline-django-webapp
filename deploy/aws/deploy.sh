@@ -119,16 +119,16 @@ if [[ -d "$FRONTEND_DIR" ]] && [[ -f "$FRONTEND_DIR/package-lock.json" ]]; then
     if command -v npm &> /dev/null; then
         log "Building frontend..."
         cd "$FRONTEND_DIR"
-        # Use ci for reproducible installs
-        npm ci --prefer-offline 2>&1 | tail -5
-        npm run build 2>&1 | tail -10
+        # Set max memory limit for node to prevent OOM on 1GB instances
+        NODE_OPTIONS="--max-old-space-size=512" npm ci --prefer-offline 2>&1 | tail -5 || log "WARNING: npm ci non-zero exit"
+        NODE_OPTIONS="--max-old-space-size=512" npm run build 2>&1 | tail -10 || log "WARNING: npm build failed, falling back to existing assets in static/app"
         cd "$APP_DIR"
-        log "Frontend build complete."
+        log "Frontend build step complete."
     else
-        log "WARNING: npm command not found; skipping frontend build."
+        log "WARNING: npm command not found; using existing built assets in static/app."
     fi
 else
-    log "WARNING: frontend/ directory or package-lock.json not found — skipping frontend build."
+    log "WARNING: frontend/ directory or package-lock.json not found — using static/app assets."
 fi
 
 # ---------------------------------------------------------------------------
@@ -188,12 +188,23 @@ TEMPLATE_SERVICE="$APP_DIR/deploy/aws/homline.service"
 RELOAD_DAEMON=false
 
 if [[ -f "$TEMPLATE_SERVICE" ]] && [[ -f "$INSTALLED_SERVICE" ]]; then
-    if ! diff -q "$TEMPLATE_SERVICE" "$INSTALLED_SERVICE" > /dev/null 2>&1; then
-        log "Service file template differs from installed unit. Updating..."
-        sudo cp "$TEMPLATE_SERVICE" "$INSTALLED_SERVICE"
-        sudo systemctl daemon-reload
-        RELOAD_DAEMON=true
-        log "Service file updated and daemon reloaded."
+    if [[ "$ACTIVE_SERVICE" == "$SERVICE_NAME" ]]; then
+        if ! diff -q "$TEMPLATE_SERVICE" "$INSTALLED_SERVICE" > /dev/null 2>&1; then
+            log "Service file template differs from installed unit. Updating..."
+            sudo cp "$TEMPLATE_SERVICE" "$INSTALLED_SERVICE"
+            sudo systemctl daemon-reload
+            RELOAD_DAEMON=true
+            log "Service file updated and daemon reloaded."
+        fi
+    else
+        # For fallback gunicorn service, ensure EnvironmentFile is injected
+        if ! grep -q "EnvironmentFile" "$INSTALLED_SERVICE" 2>/dev/null; then
+            log "Adding EnvironmentFile to $INSTALLED_SERVICE..."
+            sudo sed -i '/\[Service\]/a EnvironmentFile=\/etc\/homline\/homline.env' "$INSTALLED_SERVICE"
+            sudo systemctl daemon-reload
+            RELOAD_DAEMON=true
+            log "Service updated with EnvironmentFile."
+        fi
     fi
 fi
 
