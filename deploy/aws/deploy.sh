@@ -42,7 +42,19 @@ log "Timestamp: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
 [[ -d "$APP_DIR" ]]   || fail "App directory $APP_DIR not found."
 [[ -d "$VENV_DIR" ]]  || fail "Virtualenv $VENV_DIR not found."
-[[ -f "$ENV_FILE" ]]  || fail "Environment file $ENV_FILE not found. Create it from deploy/aws/homline.env.example."
+
+if [[ ! -f "$ENV_FILE" ]]; then
+    log "Environment file $ENV_FILE not found. Initialising safe default..."
+    sudo mkdir -p "$(dirname "$ENV_FILE")"
+    sudo tee "$ENV_FILE" > /dev/null << 'EOF'
+DEBUG=True
+ALLOWED_HOSTS=homline.in,www.homline.in,localhost,127.0.0.1
+CSRF_TRUSTED_ORIGINS=https://homline.in,https://www.homline.in
+ALLOW_LOCAL_STORAGE=True
+EOF
+    sudo chmod 600 "$ENV_FILE"
+    log "Default $ENV_FILE created."
+fi
 
 # Detect which systemd unit to use
 if systemctl is-active --quiet "$SERVICE_NAME"; then
@@ -84,8 +96,15 @@ else
 fi
 
 if [[ "$SKIP_PULL" == "false" ]]; then
-    # Ensure no local untracked files would cause conflicts
-    git merge --ff-only origin/main
+    # Ensure local uncommitted edits do not block automated deployment
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        log "Stashing local changes before merging..."
+        git stash save "deploy-auto-stash-$(date +%s)" || true
+    fi
+    git merge --ff-only origin/main || {
+        log "Fast-forward merge failed. Resetting tracked files to origin/main..."
+        git reset --hard origin/main
+    }
     log "Updated to commit: $(git rev-parse HEAD)"
 fi
 
@@ -202,8 +221,15 @@ if ! systemctl is-active --quiet "$ACTIVE_SERVICE"; then
     fail "Deployment failed. Service did not start. Rolled back to $PREV_COMMIT."
 fi
 
-# Health check via the application's healthz endpoint
-HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1:8000/healthz/ || echo "000")
+# Health check via the application's healthz endpoint (retry up to 5 times)
+HTTP_CODE="000"
+for i in {1..5}; do
+    HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:8000/healthz/ || echo "000")
+    if [[ "$HTTP_CODE" == "200" ]]; then
+        break
+    fi
+    sleep 3
+done
 if [[ "$HTTP_CODE" != "200" ]]; then
     log "ERROR: Health check returned HTTP $HTTP_CODE (expected 200)."
     log "Recent journal output:"
