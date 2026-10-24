@@ -116,15 +116,15 @@ jobs:
           chmod 644 ~/.ssh/known_hosts
 
           # Write SSH config for this connection
-          cat >> ~/.ssh/config <<EOF
-Host ec2-target
-  HostName $EC2_HOST
-  User $EC2_USER
-  IdentityFile ~/.ssh/deploy_key
-  StrictHostKeyChecking yes
-  BatchMode yes
-  ConnectTimeout 20
-EOF
+          {
+            echo "Host ec2-target"
+            echo "  HostName $EC2_HOST"
+            echo "  User ${EC2_USER:-ubuntu}"
+            echo "  IdentityFile ~/.ssh/deploy_key"
+            echo "  StrictHostKeyChecking yes"
+            echo "  BatchMode yes"
+            echo "  ConnectTimeout 20"
+          } >> ~/.ssh/config
           chmod 600 ~/.ssh/config
 
       # -----------------------------------------------------------------------
