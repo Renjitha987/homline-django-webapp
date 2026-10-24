@@ -175,7 +175,7 @@ textarea.form-control { min-height: 112px; line-height: 1.55; }
 @media (max-width: 420px) { .token-id { padding-inline: 18px; } .token-id .token-value { white-space: normal; overflow-wrap: anywhere; } }
 
 /* ---- Footer: quieter, comfortable link targets -------------------------- */
-.footer-links a { display: inline-block; padding-block: 4px; }
+.footer-links a { display: inline-block; padding-block: 1px; }
 
 /* ---- Mobile: thumb-reach bar, safe areas, no hidden content ------------- */
 @media (max-width: 767.98px) {

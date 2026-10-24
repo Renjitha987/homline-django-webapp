@@ -312,8 +312,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 .footer-logo-badge {
   background-color: #ffffff;
-  padding: 6px 12px;
-  border-radius: 10px;
+  padding: 4px 10px;
+  border-radius: 8px;
   display: inline-block;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
   transition: transform 0.25s ease;
@@ -322,7 +322,7 @@ h1, h2, h3, h4, h5, h6 {
   transform: scale(1.03);
 }
 .footer-logo-badge img {
-  height: 44px;
+  height: 34px;
   width: auto;
   object-fit: contain;
   display: block;
@@ -1548,24 +1548,28 @@ h1, h2, h3, h4, h5, h6 {
 .main-footer {
   background: linear-gradient(180deg, #070D1B 0%, #030712 100%);
   color: rgba(255, 255, 255, 0.75);
-  padding: 70px 0 25px 0;
-  font-size: 0.92rem;
+  padding: 36px 0 16px 0;
+  font-size: 0.84rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.footer-desc {
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 .footer-title {
   color: #FFFFFF;
   font-weight: 800;
-  font-size: 1.12rem;
-  margin-bottom: 22px;
+  font-size: 0.96rem;
+  margin-bottom: 10px;
   position: relative;
 }
 .footer-title::after {
   content: '';
   display: block;
-  width: 32px;
-  height: 3px;
+  width: 24px;
+  height: 2.5px;
   background: var(--brand-primary);
-  margin-top: 8px;
+  margin-top: 5px;
   border-radius: 2px;
 }
 .footer-links {
@@ -1574,22 +1578,23 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0;
 }
 .footer-links li {
-  margin-bottom: 11px;
+  margin-bottom: 4px;
 }
 .footer-links a {
   color: rgba(255, 255, 255, 0.72);
   text-decoration: none;
+  font-size: 0.82rem;
   transition: all 0.2s ease;
 }
 .footer-links a:hover {
   color: var(--highlight-gold);
-  padding-left: 4px;
+  padding-left: 3px;
 }
 .footer-bottom {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 25px;
-  margin-top: 45px;
-  font-size: 0.85rem;
+  padding-top: 14px;
+  margin-top: 20px;
+  font-size: 0.78rem;
 }
 
 /* Toast Notifications */

@@ -94,15 +94,15 @@ function Footer() {
   return (
     <footer className="main-footer">
       <div className="container">
-        <div className="row g-4">
+        <div className="row g-3 g-lg-4">
           <div className="col-lg-4 col-md-6">
-            <div className="d-flex align-items-center gap-2 mb-3">
+            <div className="d-flex align-items-center gap-2 mb-2">
               <div className="footer-logo-badge"><img src="/static/images/logo.png" alt="HOMline DIGI seva - Online Service at Doorstep" /></div>
             </div>
-            <p className="text-white-50 small mb-3">Digital Services. Simplified for You. Access essential online services with reliable assistance, convenient digital support and guidance — from the comfort of your home.</p>
-            <div className="badge bg-teal text-white px-3 py-2 rounded-pill font-monospace small mb-3"><i className="bi bi-shield-check me-1"></i> Connecting Convenience</div>
-            <div className="d-flex flex-column gap-2 small text-white-50">
-              <div><i className="bi bi-box-arrow-up-right text-gold me-1"></i> <a href="https://www.amdgmedia.co.in/homline" target="_blank" rel="noopener noreferrer" className="text-gold fw-bold text-decoration-none">AMDG Media – HOMline</a></div>
+            <p className="text-white-50 small mb-2 footer-desc">Digital Services. Simplified for You. Access essential online services with reliable assistance, convenient digital support and guidance — from the comfort of your home.</p>
+            <div className="badge bg-teal text-white px-2.5 py-1 rounded-pill font-monospace small mb-2"><i className="bi bi-shield-check me-1"></i> Connecting Convenience</div>
+            <div className="d-flex flex-column gap-1 small text-white-50">
+              <div><i className="bi bi-globe text-gold me-1"></i> <a href="https://www.homline.in" target="_blank" rel="noopener noreferrer" className="text-gold fw-bold text-decoration-none">homline.in</a></div>
               <div><i className="bi bi-envelope-fill text-teal me-1"></i> <a href="mailto:homelinedigital@gmail.com" className="text-white-50 text-decoration-none">homelinedigital@gmail.com</a></div>
               <div><i className="bi bi-telephone-fill text-gold me-1"></i> <a href="tel:6282268453" className="text-white-50 text-decoration-none">+91 62822 68453</a></div>
             </div>
@@ -132,8 +132,8 @@ function Footer() {
           </div>
           <div className="col-lg-3 col-md-6">
             <h5 className="footer-title">HOMline Portal</h5>
-            <p className="text-white-50 small mb-2">All Internet Services at your fingertip. Designed to Easy Access and Reduce Travel.</p>
-            <p className="small text-white-50 mb-3">HOMline is an independent assistance service. We are not a government office.</p>
+            <p className="text-white-50 small mb-1.5 footer-desc">All Internet Services at your fingertip. Designed to Easy Access and Reduce Travel.</p>
+            <p className="small text-white-50 mb-2 footer-desc">HOMline is an independent assistance service. We are not a government office.</p>
             <ul className="footer-links small">
               <li><Link to="/policy/terms">Terms &amp; Privacy Policy</Link></li>
               <li><Link to="/policy/disclaimer">Service Disclaimer</Link></li>
@@ -141,11 +141,11 @@ function Footer() {
             </ul>
           </div>
         </div>
-        <div className="footer-bottom d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 border-top border-secondary border-opacity-25 pt-3 mt-3">
+        <div className="footer-bottom d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 border-top border-secondary border-opacity-25 pt-2 mt-2.5">
           <div className="d-flex flex-wrap align-items-center gap-2 text-center text-md-start">
             <span className="fw-bold text-white">HOMline DIGI seva</span>
             <span className="text-white-50 d-none d-sm-inline">•</span>
-            <a href="https://www.amdgmedia.co.in/homline" target="_blank" rel="noopener noreferrer" className="text-gold fw-semibold text-decoration-none">A Division Of AMDG MEDIA</a>
+            <a href="https://www.homline.in" target="_blank" rel="noopener noreferrer" className="text-gold fw-semibold text-decoration-none">homline.in</a>
             <span className="text-white-50 d-none d-sm-inline">•</span>
             <span className="text-white-50">Powered By AMDG GROUP</span>
           </div>
