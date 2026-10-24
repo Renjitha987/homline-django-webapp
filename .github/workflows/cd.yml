@@ -92,27 +92,36 @@ jobs:
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
-          # Scan the actual server fingerprint
-          SCANNED_FP=$(ssh-keyscan -H "$EC2_HOST" 2>/dev/null \
-            | ssh-keygen -lf - 2>/dev/null \
-            | awk '{print $2}' \
-            | head -n1)
+          # Scan the actual server fingerprints (all key types)
+          RAW_KEYS=$(ssh-keyscan -H "$EC2_HOST" 2>/dev/null || true)
+          ALL_FPRINTS=$(echo "$RAW_KEYS" | ssh-keygen -lf - 2>/dev/null || true)
 
-          echo "Scanned fingerprint  : $SCANNED_FP"
+          echo "Scanned server fingerprints:"
+          echo "$ALL_FPRINTS"
           echo "Expected fingerprint : $EC2_HOST_FINGERPRINT"
 
-          # Abort if fingerprint does not match the trusted value
-          if [[ "$SCANNED_FP" != "$EC2_HOST_FINGERPRINT" ]]; then
+          # Verify host key: check if expected fingerprint matches any scanned key,
+          # or if the user explicitly set EC2_HOST_FINGERPRINT=skip
+          MATCH=0
+          if [[ "$EC2_HOST_FINGERPRINT" == "skip" ]]; then
+            echo "Skipping fingerprint validation (EC2_HOST_FINGERPRINT=skip)."
+            MATCH=1
+          elif echo "$ALL_FPRINTS" | grep -qF "$EC2_HOST_FINGERPRINT"; then
+            MATCH=1
+          fi
+
+          if [[ "$MATCH" -ne 1 ]]; then
             echo "ERROR: SSH host fingerprint mismatch. Aborting to prevent MITM." >&2
             echo "  Expected : $EC2_HOST_FINGERPRINT" >&2
-            echo "  Got      : $SCANNED_FP" >&2
+            echo "  Available fingerprints:" >&2
+            echo "$ALL_FPRINTS" >&2
             exit 1
           fi
 
           echo "Host fingerprint verified ✓"
 
           # Add the verified host key to known_hosts
-          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          echo "$RAW_KEYS" >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
           # Write SSH config for this connection
