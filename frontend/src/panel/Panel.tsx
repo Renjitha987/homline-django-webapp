@@ -198,27 +198,53 @@ export function PanelList() {
         {loading && <span className="spinner-border spinner-border-sm text-secondary position-absolute" style={{ right: 40, top: 10 }} aria-hidden="true"></span>}
       </div>
       {hasFilters && (
-        <div className="d-flex flex-wrap gap-2 mb-3 align-items-center">
+        <div className="panel-filters d-flex flex-wrap gap-3 mb-3 align-items-center">
           {data.filters.map((f) => (
-            <select key={f.name} className="form-select form-select-sm w-auto" aria-label={f.label} value={params.get(f.name) ?? ''} onChange={(e) => set({ [f.name]: e.target.value })}>
+            <select
+              key={f.name}
+              className="form-select form-select-sm w-auto panel-filter-select"
+              aria-label={f.label}
+              value={params.get(f.name) ?? ''}
+              onChange={(e) => set({ [f.name]: e.target.value })}
+            >
               <option value="">{f.label}: all</option>
               {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           ))}
           {data.date && (
-            <>
-              <label className="small text-muted">From <input type="date" className="form-control form-control-sm d-inline-block w-auto" value={params.get('date_from') ?? ''} onChange={(e) => set({ date_from: e.target.value })} /></label>
-              <label className="small text-muted">To <input type="date" className="form-control form-control-sm d-inline-block w-auto" value={params.get('date_to') ?? ''} onChange={(e) => set({ date_to: e.target.value })} /></label>
-            </>
+            <div className="d-flex flex-wrap align-items-center gap-3">
+              <label className="small text-muted d-inline-flex align-items-center gap-2">
+                <span>From</span>
+                <input
+                  type="date"
+                  className="form-control form-control-sm d-inline-block w-auto panel-date-input"
+                  value={params.get('date_from') ?? ''}
+                  onChange={(e) => set({ date_from: e.target.value })}
+                />
+              </label>
+              <label className="small text-muted d-inline-flex align-items-center gap-2">
+                <span>To</span>
+                <input
+                  type="date"
+                  className="form-control form-control-sm d-inline-block w-auto panel-date-input"
+                  value={params.get('date_to') ?? ''}
+                  onChange={(e) => set({ date_to: e.target.value })}
+                />
+              </label>
+            </div>
           )}
-          {[...params.keys()].some((k) => k !== 'page') && <button className="btn btn-link btn-sm" onClick={() => { setText(''); setParams({}, { replace: true }); }}>Clear filters</button>}
+          {[...params.keys()].some((k) => k !== 'page') && (
+            <button className="btn btn-link btn-sm text-decoration-none" onClick={() => { setText(''); setParams({}, { replace: true }); }}>
+              Clear filters
+            </button>
+          )}
         </div>
       )}
 
       {data.actions.length > 0 && (
         <div className="panel-bulk d-flex flex-wrap align-items-center gap-2 mb-2">
           <span className="small text-muted">{selected.length} of {data.rows.length} selected</span>
-          <select className="form-select form-select-sm w-auto" value={action} onChange={(e) => setAction(e.target.value)} aria-label="Bulk action">
+          <select className="form-select form-select-sm w-auto panel-filter-select" value={action} onChange={(e) => setAction(e.target.value)} aria-label="Bulk action">
             <option value="">Action…</option>
             {data.actions.map((a) => <option key={a.key} value={a.key}>{a.label}</option>)}
           </select>

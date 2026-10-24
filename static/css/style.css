@@ -1499,6 +1499,10 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-dark);
   transition: all 0.2s ease;
 }
+.form-select {
+  padding-right: 2.75rem;
+  background-position: right 0.85rem center;
+}
 .form-control:focus, .form-select:focus {
   background-color: var(--card-bg);
   color: var(--text-dark);
