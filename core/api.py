@@ -193,13 +193,18 @@ class LoginView(APIView):
         password = request.data.get('password') or ''
         if not ident or not password:
             return Response({'errors': {'__all__': ['Enter your username and password.']}}, status=400)
-        user = None
-        if '@' in ident:
+        user = authenticate(request._request, username=ident, password=password)
+        if not user and '@' in ident:
             match = User.objects.filter(email__iexact=ident).first()
             if match:
                 user = authenticate(request._request, username=match.username, password=password)
-        if not user:
-            user = authenticate(request._request, username=ident, password=password)
+        if not user and '@' in ident:
+            prefix = ident.split('@')[0]
+            user = authenticate(request._request, username=prefix, password=password)
+        if not user and '@' in ident:
+            match = User.objects.filter(email__istartswith=ident).first()
+            if match:
+                user = authenticate(request._request, username=match.username, password=password)
         if user is None:
             return Response({'errors': {'__all__': ['Invalid username or password. Please try again.']}}, status=400)
         if not user.is_active:
