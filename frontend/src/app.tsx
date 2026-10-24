@@ -36,6 +36,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .finally(() => setReady(true));
   }, []);
 
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        api('bootstrap/')
+          .then((d) => {
+            setUser(d.user);
+            setAnnouncements(d.announcements);
+            setServiceOptions(d.services);
+          })
+          .catch(() => setUser(null));
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   const notify = useCallback((text: string, type: Flash['type'] = 'success') => setFlash({ text, type }), []);
   const clearFlash = useCallback(() => setFlash(null), []);
 

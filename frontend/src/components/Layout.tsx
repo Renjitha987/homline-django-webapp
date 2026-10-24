@@ -22,10 +22,14 @@ function Header() {
   }, [pathname]);
 
   const logout = async () => {
-    await api('auth/logout/', { method: 'POST', body: {} });
+    try {
+      await api('auth/logout/', { method: 'POST', body: {} });
+    } catch {
+      // Ensure client state is cleared even if network fails
+    }
     setUser(null);
-    notify('You have been signed out safely. Come back anytime!', 'info');
-    navigate('/');
+    notify('Logged out successfully.', 'success');
+    navigate('/', { replace: true });
   };
 
   return (
@@ -68,7 +72,7 @@ function Header() {
                       </>
                     )}
                     <li><hr className="dropdown-divider" /></li>
-                    <li><button type="button" className="dropdown-item text-danger fw-bold" onClick={logout}><i className="bi bi-box-arrow-right me-2"></i> Sign Out</button></li>
+                    <li><button type="button" className="dropdown-item text-danger fw-bold" onClick={logout}><i className="bi bi-box-arrow-right me-2"></i> Logout</button></li>
                   </ul>
                 </div>
               ) : (

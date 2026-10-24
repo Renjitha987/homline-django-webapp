@@ -49,7 +49,16 @@ export function PanelLayout() {
   if (!user) return <Navigate to="/login?next=/panel" replace />;
   if (!user.is_staff) return <div className="container py-5 text-center"><h1 className="h3 fw-bold">Staff access only</h1><Link to="/" className="btn btn-teal mt-3">Go to site</Link></div>;
   const sections = data?.sections ?? [];
-  const logout = async () => { await api('auth/logout/', { method: 'POST', body: {} }); setUser(null); notify('Signed out.', 'info'); navigate('/'); };
+  const logout = async () => {
+    try {
+      await api('auth/logout/', { method: 'POST', body: {} });
+    } catch {
+      // Ensure client state is cleared even if network fails
+    }
+    setUser(null);
+    notify('Logged out successfully.', 'success');
+    navigate('/', { replace: true });
+  };
   const item = (s: Section) => <NavLink key={s.key} to={base(s.key)} className={({ isActive }) => (isActive ? 'on' : '')}><i className={`bi ${s.icon}`}></i> {s.title}</NavLink>;
   return (
     <div className="panel-root d-flex panel-shell">
@@ -72,7 +81,7 @@ export function PanelLayout() {
         <h6>Site</h6>
         <a href="/" target="_blank" rel="noreferrer"><i className="bi bi-box-arrow-up-right"></i> View website</a>
         <Link to="/dashboard"><i className="bi bi-person"></i> My account</Link>
-        <button className="link text-danger" onClick={logout}><i className="bi bi-box-arrow-right"></i> Sign out</button>
+        <button className="link text-danger" onClick={logout}><i className="bi bi-box-arrow-right"></i> Logout</button>
       </nav>
       <main className="flex-grow-1 p-3 p-lg-4" style={{ minWidth: 0 }}><Outlet /></main>
     </div>

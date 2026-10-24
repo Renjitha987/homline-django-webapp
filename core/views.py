@@ -88,4 +88,8 @@ def spa_view(request, path=''):
         except FileNotFoundError:
             return HttpResponse('Frontend not built. Run "npm ci && npm run build" in frontend/ (or use "npm run dev").',
                                 status=503, content_type='text/plain')
-    return HttpResponse(_spa_html, content_type='text/html; charset=utf-8')
+    response = HttpResponse(_spa_html, content_type='text/html; charset=utf-8')
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0, private'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response

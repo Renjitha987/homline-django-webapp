@@ -6,6 +6,7 @@ Auth is session + CSRF (same origin): the React app reads the csrftoken cookie s
 import urllib.parse
 from pathlib import Path
 
+from django.conf import settings
 from django import forms as djforms
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
@@ -38,6 +39,18 @@ from .views import _can_view_request, _verify_request_access
 
 
 # ---------------------------------------------------------------- plumbing
+class SensitiveAPIView(APIView):
+    """Base APIView for sensitive, authenticated, or staff/admin endpoints.
+    Enforces strict Cache-Control headers so browsers never cache sensitive panel or user data.
+    """
+    def finalize_response(self, request, response, *args, **kwargs):
+        res = super().finalize_response(request, response, *args, **kwargs)
+        res['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
+        res['Pragma'] = 'no-cache'
+        res['Expires'] = '0'
+        return res
+
+
 class IsStaff(BasePermission):
     def has_permission(self, request, view):
         return bool(request.user and request.user.is_authenticated and request.user.is_staff)
@@ -213,15 +226,22 @@ class SignupView(APIView):
         return Response({'user': user_payload(user)}, status=201)
 
 
-class LogoutView(APIView):
+class LogoutView(SensitiveAPIView):
     permission_classes = []
 
     def post(self, request):
         logout(request._request)
-        return Response({'ok': True})
+        response = Response({'ok': True, 'message': 'Logged out successfully.'})
+        response.delete_cookie(
+            settings.SESSION_COOKIE_NAME,
+            domain=settings.SESSION_COOKIE_DOMAIN,
+            path=settings.SESSION_COOKIE_PATH,
+            samesite=settings.SESSION_COOKIE_SAMESITE,
+        )
+        return response
 
 
-class MeView(APIView):
+class MeView(SensitiveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -235,7 +255,7 @@ class MeView(APIView):
         return Response({'user': user_payload(request.user)})
 
 
-class PasswordView(APIView):
+class PasswordView(SensitiveAPIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -246,7 +266,7 @@ class PasswordView(APIView):
         return Response({'ok': True})
 
 
-class DashboardView(APIView):
+class DashboardView(SensitiveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -264,7 +284,7 @@ class DashboardView(APIView):
         })
 
 
-class LinkRequestView(APIView):
+class LinkRequestView(SensitiveAPIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -545,7 +565,7 @@ def _store_original_name(obj, request):
             obj.save(update_fields=[name_field])
 
 
-class PanelMetaView(APIView):
+class PanelMetaView(SensitiveAPIView):
     permission_classes = [IsStaff]
 
     def get(self, request):
@@ -555,7 +575,7 @@ class PanelMetaView(APIView):
             for k, c in panel.SECTIONS.items() if c.get('queue') or sup]})
 
 
-class PanelOverviewView(APIView):
+class PanelOverviewView(SensitiveAPIView):
     permission_classes = [IsStaff]
 
     def get(self, request):
@@ -576,7 +596,7 @@ class PanelOverviewView(APIView):
              'service': r.get_service_title(), 'status': r.status, 'created_at': r.created_at} for r in recent[:8]]})
 
 
-class PanelListView(APIView):
+class PanelListView(SensitiveAPIView):
     permission_classes = [IsStaff]
 
     def get(self, request, key):
@@ -616,7 +636,7 @@ class PanelListView(APIView):
         return Response({'id': obj.pk}, status=201)
 
 
-class PanelBulkView(APIView):
+class PanelBulkView(SensitiveAPIView):
     permission_classes = [IsStaff]
 
     def post(self, request, key):
@@ -646,7 +666,7 @@ class PanelBulkView(APIView):
         return Response({'count': n, 'message': f'{n} item(s): {allowed[action]}.'})
 
 
-class PanelExportView(APIView):
+class PanelExportView(SensitiveAPIView):
     permission_classes = [IsStaff]
 
     def get(self, request, key):
@@ -658,6 +678,9 @@ class PanelExportView(APIView):
         names = {f.name for f in cfg['model']._meta.fields}
         resp = HttpResponse(content_type='text/csv')
         resp['Content-Disposition'] = f'attachment; filename="homline_{key}.csv"'
+        resp['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
+        resp['Pragma'] = 'no-cache'
+        resp['Expires'] = '0'
         w = csv.writer(resp)
         w.writerow([cfg['model']._meta.get_field(c).verbose_name.title() if c in names else c.replace('get_', '').replace('_', ' ').title() for c in cols])
         for o in qs:
@@ -671,7 +694,7 @@ def _csv_safe(v):
     return "'" + v if v[:1] in ('=', '+', '-', '@') else v
 
 
-class PanelDetailView(APIView):
+class PanelDetailView(SensitiveAPIView):
     permission_classes = [IsStaff]
 
     def _obj(self, request, key, pk):
@@ -729,7 +752,7 @@ class PanelDetailView(APIView):
         return Response(status=204)
 
 
-class PanelTimelineView(APIView):
+class PanelTimelineView(SensitiveAPIView):
     """Add a manual timeline entry to a request (visible to the customer on the tracker); admins can delete entries."""
     permission_classes = [IsStaff]
 
@@ -754,7 +777,7 @@ def _user_row(u):
             'status': None, 'links': {}}
 
 
-class PanelUsersView(APIView):
+class PanelUsersView(SensitiveAPIView):
     permission_classes = [IsSuperuser]
 
     def get(self, request):
@@ -786,7 +809,7 @@ class PanelUsersView(APIView):
         return Response({'id': form.save().pk}, status=201)
 
 
-class PanelUserDetailView(APIView):
+class PanelUserDetailView(SensitiveAPIView):
     permission_classes = [IsSuperuser]
 
     def get(self, request, pk=None):

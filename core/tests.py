@@ -8,6 +8,7 @@ from core.models import Category, Service, Update, MembershipPlan, FAQ, Customer
 from core.forms import ServiceRequestForm
 
 import tempfile
+from django.conf import settings
 from django.test import override_settings
 
 
@@ -174,6 +175,45 @@ class HOMlineProjectTests(TestCase):
 
     def test_logout_is_post_only(self):
         self.assertEqual(self.client.get('/api/auth/logout/').status_code, 405)
+
+    def test_admin_logout_terminates_session_and_blocks_panel_access(self):
+        User = get_user_model()
+        User.objects.create_user('adminuser', password='AdminPassword123!', is_staff=True, is_superuser=True)
+        c = APIClient()
+        # 1. Admin login
+        login_res = c.post('/api/auth/login/', {'username': 'adminuser', 'password': 'AdminPassword123!'}, format='json')
+        self.assertEqual(login_res.status_code, 200)
+        self.assertEqual(login_res.json()['user']['role'], 'admin')
+
+        # 2. Access panel endpoints while authenticated
+        meta_res = c.get('/api/panel/meta/')
+        self.assertEqual(meta_res.status_code, 200)
+        self.assertIn('no-store', meta_res.get('Cache-Control', ''))
+
+        # 3. Logout
+        logout_res = c.post('/api/auth/logout/')
+        self.assertEqual(logout_res.status_code, 200)
+        self.assertTrue(logout_res.json().get('ok'))
+        self.assertEqual(logout_res.json().get('message'), 'Logged out successfully.')
+        self.assertIn('no-store', logout_res.get('Cache-Control', ''))
+        if settings.SESSION_COOKIE_NAME in logout_res.cookies:
+            self.assertEqual(logout_res.cookies[settings.SESSION_COOKIE_NAME]['max-age'], 0)
+
+        # 4. Subsequent access to panel endpoints is forbidden
+        self.assertEqual(c.get('/api/panel/meta/').status_code, 403)
+        self.assertEqual(c.get('/api/panel/overview/').status_code, 403)
+        self.assertEqual(c.get('/api/auth/me/').status_code, 403)
+
+        # 5. Bootstrap returns no authenticated user (refreshing page state)
+        boot_res = c.get('/api/bootstrap/')
+        self.assertEqual(boot_res.status_code, 200)
+        self.assertIsNone(boot_res.json()['user'])
+
+        # 6. Admin can log in again normally
+        relogin_res = c.post('/api/auth/login/', {'username': 'adminuser', 'password': 'AdminPassword123!'}, format='json')
+        self.assertEqual(relogin_res.status_code, 200)
+        self.assertEqual(relogin_res.json()['user']['role'], 'admin')
+        self.assertEqual(c.get('/api/panel/meta/').status_code, 200)
 
     def test_contact_enquiry_is_saved(self):
         r = APIClient().post('/api/contact/', {'name': 'New Enquiry', 'mobile': '6282268453', 'message': 'Please call me about PAN assistance.'}, format='json')
