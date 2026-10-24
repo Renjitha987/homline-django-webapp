@@ -23,7 +23,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-homline-secret-key-fallback-replace-in-env')
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured('SECRET_KEY must be set when DEBUG is False.')
+    SECRET_KEY = 'django-insecure-local-development-only-key'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 ALLOWED_HOSTS = [host.strip() for host in os.environ.get(
@@ -123,7 +127,8 @@ if DATABASE_URL:
         )
     except Exception as exc:
         raise ImproperlyConfigured('DATABASE_URL is not a valid database connection string.') from exc
-# Fallback to local SQLite if DATABASE_URL is not set
+elif not DEBUG and not os.environ.get('ALLOW_LOCAL_STORAGE'):
+    raise ImproperlyConfigured('Set DATABASE_URL to a persistent database for production deployments.')
 
 
 # Password validation
@@ -186,7 +191,8 @@ if R2_BUCKET_NAME:
             "file_overwrite": False,
         },
     }
-# Fallback to FileSystemStorage if R2 is not configured
+elif not DEBUG and not os.environ.get('ALLOW_LOCAL_STORAGE'):
+    raise ImproperlyConfigured('Set R2_BUCKET_NAME and the other R2_* variables: production uploads need persistent private storage.')
 else:
     DEFAULT_FILE_STORAGE_CONFIG = {"BACKEND": "django.core.files.storage.FileSystemStorage"}
 
